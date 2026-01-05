@@ -1,0 +1,142 @@
+TO CREATE THE TABLE NAME NETFLIX
+CREATE TABLE netflix
+(
+    "show_id" varchar(10) PRIMARY KEY,
+    "type" char(10) NOT NULL,
+    "title" char(150) NOT NULL,
+    "director" char(210),
+    "cast" char(1000),
+    "country" char(150),
+    "date_added" varchar(50),
+    "release_year" int8,
+    "rating" varchar(20),
+    "duration" varchar(20),
+    "listed_in" varchar(100),
+    "description" varchar(300)
+);
+ This table stores Netflix content including movies and TV shows.
+It captures all relevant attributes like title, director, cast, country, release year, genre, duration, and description.
+
+ 1) COUNT THE NUMBER OF MOVIES V/S TV SHOWS
+SELECT type, COUNT(*) AS total
+FROM netflix
+GROUP BY type;
+ This query counts how many titles are Movies versus TV Shows.
+ It gives a quick overview of content distribution on Netflix.
+
+ 2) FIND THE MOST COMMON RATING FOR MOVIES AND TV SHOWS
+SELECT type, rating AS top_rating
+FROM netflix
+GROUP BY type, rating
+ORDER BY type, rating DESC;
+ It helps understand Netflix’s content rating distribution.
+
+3) LIST ALL THE MOVIES RELEASED IN A SPECIFIC YEAR
+SELECT title, release_year
+FROM netflix
+WHERE release_year='2020' AND type='Movie'
+ORDER BY title ASC;
+ This query filters all movies released in 2020.
+ Useful for analyzing content trends in a particular year.
+
+ 4) FIND THE TOP 5 COUNTRIES WITH THE MOST CONTENT
+SELECT country, COUNT(*) AS total_content
+FROM netflix
+GROUP BY country
+ORDER BY total_content DESC;
+This shows which countries produce the most Netflix content.
+Helps identify global content production patterns.
+
+5) IDENTIFY THE LONGEST MOVIE OR TV SHOW DURATION
+WITH longest_movie AS (
+    SELECT 'Movie' AS type, title, duration
+    FROM netflix
+    WHERE type='Movie' AND duration IS NOT NULL
+    ORDER BY CAST(NULLIF(split_part(duration,' ',1),' ') AS int) DESC
+    LIMIT 1
+),
+longest_tvshow AS (
+    SELECT 'TV Show' AS type, title, duration
+    FROM netflix
+    WHERE type='TV Show'
+    ORDER BY CAST(split_part(duration,' ',1) AS int) DESC
+    LIMIT 1
+)
+SELECT * FROM longest_movie
+UNION ALL
+SELECT * FROM longest_tvshow;
+ This finds the longest Movie (by runtime) and the TV Show with the most seasons.
+ It highlights Netflix’s most time-consuming content.
+
+ 6) FIND CONTENT IN LAST 5 YEARS
+SELECT type, title, date_added
+FROM netflix
+WHERE TO_DATE(date_added,'Month DD,YYYY') > CURRENT_DATE - INTERVAL '5 years'
+ORDER BY type, date_added DESC;
+ This lists all content added to Netflix in the last 5 years.
+ Useful for studying recent trends in content addition.
+
+ 7) FIND ALL MOVIES AND TV SHOWS DIRECTED BY 'RAJIV CHILAKA'
+SELECT type, title, release_year
+FROM netflix
+WHERE director='Rajiv Chilaka'
+ORDER BY type, release_year DESC;
+ This filters all titles directed by Rajiv Chilaka.
+ Can be used to analyze a director’s contribution to Netflix content.
+
+ 8) FIND ALL TV SHOWS WITH MORE THAN 5 SEASONS
+SELECT title, duration, release_year
+FROM netflix
+WHERE CAST(split_part(duration,' ',1) AS int) > 5 AND type='TV Show'
+ORDER BY duration DESC;
+ This query identifies TV Shows with more than 5 seasons.
+ It helps to find long-running series on Netflix.
+
+9) COUNT NUMBER OF CONTENT ITEMS IN EACH GENRE
+SELECT TRIM(UNNEST(string_to_array(listed_in,','))) AS genre,
+       COUNT(*) AS total_content
+FROM netflix
+GROUP BY genre
+ORDER BY total_content DESC;
+ This counts how many titles belong to each genre.
+ Useful for identifying the most popular genres on Netflix.
+
+ 10) FIND AVERAGE RELEASE YEAR FOR CONTENT PRODUCED IN EACH COUNTRY
+SELECT 
+    TRIM(UNNEST(string_to_array(country,','))) AS countries,
+    ROUND(AVG(release_year)) AS avg_year
+FROM netflix
+GROUP BY countries
+ORDER BY avg_year DESC;
+ This calculates the average release year for content produced in each country.
+ It helps understand which countries produce more recent versus older content.
+
+11) LIST ALL MOVIES THAT ARE DOCUMENTARIES
+SELECT 
+    TRIM(g.genre) AS genre,
+    title
+FROM netflix
+CROSS JOIN LATERAL UNNEST(string_to_array(listed_in,',')) AS g(genre)
+WHERE type='Movie' AND TRIM(g.genre)='Documentaries';
+This filters all movies that belong to the Documentaries genre.
+Useful for analyzing non-fiction content on Netflix.
+
+12) FIND ALL MOVIES WITHOUT A DIRECTOR
+SELECT title, release_year
+FROM netflix
+WHERE director IS NULL
+ORDER BY release_year DESC;
+ This identifies movies that do not have a director listed.
+ Helps in checking for missing or incomplete metadata.
+
+13) FIND THE TOP 10 ACTORS WHO HAVE APPEARED IN THE HIGHEST NUMBER OF MOVIES PRODUCED IN INDIA
+SELECT TRIM(c.actor) AS top_cast,
+       COUNT(*) AS number_of_movies
+FROM netflix n
+CROSS JOIN LATERAL UNNEST(string_to_array(n.cast,',')) AS c(actor)
+WHERE n.cast IS NOT NULL
+GROUP BY top_cast
+ORDER BY number_of_movies DESC
+LIMIT 10;
+ This lists the top 10 actors who appear most frequently in Netflix movies from India.
+Useful for analyzing prolific actors and star power in Indian Netflix content.
